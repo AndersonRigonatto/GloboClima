@@ -7,41 +7,48 @@
 
 <PageTitle>Meus Favoritos</PageTitle>
 
-<MudText Typo="Typo.h4" GutterBottom="true">Meus Favoritos</MudText>
+<AuthorizeView>
+    <Authorized>
+        <MudText Typo="Typo.h4" GutterBottom="true">Meus Favoritos</MudText>
 
-@if (_favorites == null)
-{
-    <MudProgressCircular Indeterminate="true" />
-}
-else
-{
-    <MudGrid>
-        <MudItem xs="12" sm="6">
-            <MudText Typo="Typo.h6">Cidades</MudText>
-            <MudList T="string">
-                @foreach (var city in _favorites.Cities)
-                {
-                    <MudListItem T="string">
-                        @city
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => RemoveCity(city)" />
-                    </MudListItem>
-                }
-            </MudList>
-        </MudItem>
-        <MudItem xs="12" sm="6">
-            <MudText Typo="Typo.h6">Países</MudText>
-            <MudList T="string">
-                @foreach (var country in _favorites.Countries)
-                {
-                    <MudListItem T="string">
-                        @country
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => RemoveCountry(country)" />
-                    </MudListItem>
-                }
-            </MudList>
-        </MudItem>
-    </MudGrid>
-}
+        @if (_favorites == null)
+        {
+            <MudProgressCircular Indeterminate="true" />
+        }
+        else
+        {
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.h6">Cidades</MudText>
+                    <MudList T="string">
+                        @foreach (var city in _favorites.Cities)
+                        {
+                            <MudListItem T="string">
+                                @city
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => RemoveCity(city)" />
+                            </MudListItem>
+                        }
+                    </MudList>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.h6">Países</MudText>
+                    <MudList T="string">
+                        @foreach (var country in _favorites.Countries)
+                        {
+                            <MudListItem T="string">
+                                @country
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => RemoveCountry(country)" />
+                            </MudListItem>
+                        }
+                    </MudList>
+                </MudItem>
+            </MudGrid>
+        }
+    </Authorized>
+    <NotAuthorized>
+        <MudText Typo="Typo.h5" Color="Color.Warning">Faça login para ter acesso às funcionalidades de favoritos.</MudText>
+    </NotAuthorized>
+</AuthorizeView>
 
 @code {
     private UserFavorites? _favorites;
