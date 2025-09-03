@@ -1,0 +1,65 @@
+@page "/favorites"
+@using Microsoft.AspNetCore.Authorization
+@using GloboClima.WebApp.Client.Models
+@using GloboClima.WebApp.Client.Services
+@inject IFavoritesService FavoritesService
+@attribute [Authorize]
+
+<PageTitle>Meus Favoritos</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Meus Favoritos</MudText>
+
+@if (_favorites == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12" sm="6">
+            <MudText Typo="Typo.h6">Cidades</MudText>
+            <MudList T="string">
+                @foreach (var city in _favorites.Cities)
+                {
+                    <MudListItem T="string">
+                        @city
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => RemoveCity(city)" />
+                    </MudListItem>
+                }
+            </MudList>
+        </MudItem>
+        <MudItem xs="12" sm="6">
+            <MudText Typo="Typo.h6">Países</MudText>
+            <MudList T="string">
+                @foreach (var country in _favorites.Countries)
+                {
+                    <MudListItem T="string">
+                        @country
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" OnClick="() => RemoveCountry(country)" />
+                    </MudListItem>
+                }
+            </MudList>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private UserFavorites? _favorites;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _favorites = await FavoritesService.GetFavoritesAsync();
+    }
+
+    private async Task RemoveCity(string city)
+    {
+        await FavoritesService.RemoveFavoriteCityAsync(city);
+        _favorites?.Cities.Remove(city);
+    }
+
+    private async Task RemoveCountry(string country)
+    {
+        await FavoritesService.RemoveFavoriteCountryAsync(country);
+        _favorites?.Countries.Remove(country);
+    }
+}

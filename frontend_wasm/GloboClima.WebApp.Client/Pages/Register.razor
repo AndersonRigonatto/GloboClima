@@ -1,0 +1,62 @@
+@page "/register"
+@using GloboClima.WebApp.Client.Models
+@using GloboClima.WebApp.Client.Services
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5">Registrar</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudTextField @bind-Value="_username" Label="Usuário" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_password" Label="Senha" InputType="InputType.Password" Variant="Variant.Outlined" Class="mb-3" />
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-3">@_errorMessage</MudAlert>
+            }
+            @if (!string.IsNullOrEmpty(_successMessage))
+            {
+                <MudAlert Severity="Severity.Success" Class="mb-3">@_successMessage</MudAlert>
+            }
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleRegister">Registrar</MudButton>
+            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="GoToLogin">Já tem uma conta? Faça o login</MudButton>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private string _username = "";
+    private string _password = "";
+    private string? _errorMessage;
+    private string? _successMessage;
+
+    private async Task HandleRegister()
+    {
+        _errorMessage = null;
+        _successMessage = null;
+
+        var request = new UserRegisterRequest(_username, _password);
+        var result = await AuthService.RegisterAsync(request);
+        if (result)
+        { 
+            _successMessage = "Registro realizado com sucesso! Você será redirecionado para o login.";
+            await Task.Delay(2000); // Wait 2 seconds to show the message
+            NavigationManager.NavigateTo("/login");
+        }
+        else
+        {
+            _errorMessage = "Não foi possível realizar o registro. O usuário pode já existir.";
+        }
+    }
+
+    private void GoToLogin()
+    {
+        NavigationManager.NavigateTo("/login");
+    }
+}

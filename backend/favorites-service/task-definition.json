@@ -1,0 +1,43 @@
+{
+    "containerDefinitions": [
+        {
+            "name": "globoclima-favorites",
+            "image": "590183663353.dkr.ecr.sa-east-1.amazonaws.com/globoclima-favorites:latest",
+            "cpu": 256,
+            "memory": 256,
+            "portMappings": [
+                {
+                    "containerPort": 5000,
+                    "hostPort": 0,
+                    "protocol": "tcp",
+                    "name": "globoclima-favorites-5000-tcp"
+                }
+            ],
+            "essential": true,
+            "environment": [],
+            "mountPoints": [],
+            "volumesFrom": [],
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/globoclima-favorites",
+                    "awslogs-region": "sa-east-1",
+                    "awslogs-stream-prefix": "ecs"
+                },
+                "secretOptions": []
+            },
+            "systemControls": []
+        }
+    ],
+    "family": "FavoritesServiceTask",
+    "taskRoleArn": "arn:aws:iam::590183663353:role/ECSTaskFavoritesServiceRole",
+    "executionRoleArn": "arn:aws:iam::590183663353:role/ecsTaskExecutionRole",
+    "networkMode": "bridge",
+    "volumes": [],
+    "placementConstraints": [],
+    "requiresCompatibilities": [
+        "EC2"
+    ],
+    "cpu": "256",
+    "memory": "256"
+}

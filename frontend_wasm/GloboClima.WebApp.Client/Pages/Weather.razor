@@ -1,0 +1,76 @@
+@page "/weather"
+@using GloboClima.WebApp.Client.Models
+@using GloboClima.WebApp.Client.Services
+@inject IDataService DataService
+@inject IFavoritesService FavoritesService
+@inject ISnackbar Snackbar
+
+<PageTitle>Clima</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Consulta de Clima</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudTextField @bind-Value="_city" Label="Digite o nome da cidade" Variant="Variant.Outlined" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SearchWeather" Class="mt-2">Buscar</MudButton>
+</MudPaper>
+
+@if (_weatherResponse != null)
+{
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">@_weatherResponse.CityName</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudText>Temperatura: @_weatherResponse.Main?.Temperature?.ToString("F1") °C</MudText>
+            <MudText>Condição: @_weatherResponse.Weather?.FirstOrDefault()?.Description</MudText>
+        </MudCardContent>
+        <MudCardActions>
+            <AuthorizeView>
+                <Authorized>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => AddCityToFavorites(_weatherResponse.CityName!)">Adicionar aos Favoritos</MudButton>
+                </Authorized>
+            </AuthorizeView>
+        </MudCardActions>
+    </MudCard>
+}
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+}
+
+@code {
+    private string _city = string.Empty;
+    private WeatherResponse? _weatherResponse;
+    private string? _errorMessage;
+
+    private async Task SearchWeather()
+    {
+        _errorMessage = null;
+        _weatherResponse = null;
+
+        if (string.IsNullOrWhiteSpace(_city))
+        {
+            _errorMessage = "Por favor, digite o nome de uma cidade.";
+            return;
+        }
+
+        var result = await DataService.GetWeatherAsync(_city);
+        if (result != null)
+        {
+            _weatherResponse = result;
+        }
+        else
+        {
+            _errorMessage = $"Não foi possível encontrar o clima para a cidade: {_city}";
+        }
+    }
+
+    private async Task AddCityToFavorites(string cityName)
+    {
+        await FavoritesService.AddFavoriteCityAsync(cityName);
+        Snackbar.Add($"'{cityName}' adicionada aos favoritos!", Severity.Success);
+    }
+}

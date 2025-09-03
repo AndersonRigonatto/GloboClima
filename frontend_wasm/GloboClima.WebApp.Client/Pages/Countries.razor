@@ -1,0 +1,77 @@
+@page "/countries"
+@using GloboClima.WebApp.Client.Models
+@using GloboClima.WebApp.Client.Services
+@inject IDataService DataService
+@inject IFavoritesService FavoritesService
+@inject ISnackbar Snackbar
+
+<PageTitle>Países</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Consulta de Países</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudTextField @bind-Value="_country" Label="Digite o nome do país (em inglês)" Variant="Variant.Outlined" />
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SearchCountry" Class="mt-2">Buscar</MudButton>
+</MudPaper>
+
+@if (_countryResponse != null)
+{
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h6">@_countryResponse.Name?.Common</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudText>População: @_countryResponse.Population.ToString("N0")</MudText>
+            <MudText>Moedas: @(_countryResponse.Currencies != null ? string.Join(", ", _countryResponse.Currencies.Values.Select(c => c.Name)) : "N/A")</MudText>
+            <MudText>Idiomas: @(_countryResponse.Languages != null ? string.Join(", ", _countryResponse.Languages.Values) : "N/A")</MudText>
+        </MudCardContent>
+        <MudCardActions>
+            <AuthorizeView>
+                <Authorized>
+                    <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="() => AddCountryToFavorites(_countryResponse.Name!.Common!)">Adicionar aos Favoritos</MudButton>
+                </Authorized>
+            </AuthorizeView>
+        </MudCardActions>
+    </MudCard>
+}
+
+@if (!string.IsNullOrEmpty(_errorMessage))
+{
+    <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+}
+
+@code {
+    private string _country = string.Empty;
+    private CountryResponse? _countryResponse;
+    private string? _errorMessage;
+
+    private async Task SearchCountry()
+    {
+        _errorMessage = null;
+        _countryResponse = null;
+
+        if (string.IsNullOrWhiteSpace(_country))
+        {
+            _errorMessage = "Por favor, digite o nome de um país.";
+            return;
+        }
+
+        var result = await DataService.GetCountryAsync(_country);
+        if (result != null && result.Any())
+        {
+            _countryResponse = result.FirstOrDefault();
+        }
+        else
+        {
+            _errorMessage = $"Não foi possível encontrar o país: {_country}";
+        }
+    }
+
+    private async Task AddCountryToFavorites(string countryName)
+    {
+        await FavoritesService.AddFavoriteCountryAsync(countryName);
+        Snackbar.Add($"'{countryName}' adicionado aos favoritos!", Severity.Success);
+    }
+}

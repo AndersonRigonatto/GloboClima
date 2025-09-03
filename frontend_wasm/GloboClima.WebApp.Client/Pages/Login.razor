@@ -1,0 +1,56 @@
+@page "/login"
+@using GloboClima.WebApp.Client.Models
+@using GloboClima.WebApp.Client.Services
+@inject IAuthService AuthService
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-16">
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5">Login</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudTextField @bind-Value="_username" Label="Usuário" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_password" Label="Senha" InputType="InputType.Password" Variant="Variant.Outlined" Class="mb-3" />
+            @if (!string.IsNullOrEmpty(_errorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Class="mb-3">@_errorMessage</MudAlert>
+            }
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="HandleLogin">Entrar</MudButton>
+            <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="GoToRegister">Não tem uma conta? Registre-se</MudButton>
+        </MudCardActions>
+    </MudCard>
+</MudContainer>
+
+@code {
+    private string _username = "";
+    private string _password = "";
+    private string? _errorMessage;
+
+    private async Task HandleLogin()
+    {
+        _errorMessage = null;
+        var request = new UserLoginRequest(_username, _password);
+        var result = await AuthService.LoginAsync(request);
+        if (result != null && !string.IsNullOrEmpty(result.Token))
+        {
+            var customAuthStateProvider = (GloboClima.WebApp.Client.Providers.JwtAuthenticationStateProvider)AuthStateProvider;
+            await customAuthStateProvider.Login(result.Token);
+            NavigationManager.NavigateTo("/", forceLoad: true);
+        }
+        else
+        {
+            _errorMessage = "Usuário ou senha inválidos.";
+        }
+    }
+
+    private void GoToRegister()
+    {
+        NavigationManager.NavigateTo("/register");
+    }
+}

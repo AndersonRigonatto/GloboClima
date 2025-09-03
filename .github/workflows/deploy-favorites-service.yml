@@ -1,0 +1,67 @@
+# .github/workflows/deploy-favorites-service.yml
+
+name: Deploy Favorites Service to ECS
+
+on:
+  # Gatilho: Acionado em push para a branch 'main'
+  push:
+    branches:
+      - master
+    # Filtro de Caminho: Só executa se houver alterações na pasta do serviço ou no próprio workflow
+    paths:
+      - 'backend/favorites-service/**'
+      - '.github/workflows/deploy-favorites-service.yml'
+
+jobs:
+  deploy:
+    name: Build and Deploy Favorites Service
+    runs-on: ubuntu-latest
+    environment: globoclimakeys
+
+    steps:
+      # 1. Faz o checkout do código do seu repositório
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      # 2. Configura as credenciais da AWS usando os segredos do GitHub
+      - name: Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # 3. Faz login no Amazon ECR
+      - name: Login no Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 4. Compila a imagem Docker, adiciona uma tag e envia para o ECR
+      - name: Build, tag, e push da imagem para o ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: globoclima-favorites
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend/favorites-service
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # 5. Pega o task-definition.json, injeta a nova imagem e cria uma nova revisão
+      - name: Renderizar Task Definition do Amazon ECS
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: backend/favorites-service/task-definition.json
+          container-name: globoclima-favorites
+          image: ${{ steps.build-image.outputs.image }}
+
+      # 6. Atualiza o serviço no ECS para usar a nova revisão da task definition
+      - name: Deploy da Task Definition no Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: FavoritesService # <-- ATENÇÃO: Confirme o nome do seu serviço no ECS
+          cluster: GloboClimaCluster         # <-- ATENÇÃO: Coloque o nome do seu cluster no ECS
+          wait-for-service-stability: true

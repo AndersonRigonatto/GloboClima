@@ -1,0 +1,6 @@
+@GloboClima.Auth_HostAddress = http://localhost:5068
+
+GET {{GloboClima.Auth_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

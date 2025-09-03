@@ -1,0 +1,67 @@
+# .github/workflows/deploy-auth-service.yml
+
+name: Deploy Auth Service to ECS
+
+on:
+  # Gatilho: Acionado em push para a branch 'main'
+  push:
+    branches:
+      - master
+    # Filtro de Caminho: Só executa se houver alterações na pasta do serviço ou no próprio workflow
+    paths:
+      - 'backend/auth-service/**'
+      - '.github/workflows/deploy-auth-service.yml'
+
+jobs:
+  deploy:
+    name: Build and Deploy Auth Service
+    runs-on: ubuntu-latest
+    environment: globoclimakeys
+
+    steps:
+      # 1. Faz o checkout do código do seu repositório
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      # 2. Configura as credenciais da AWS usando os segredos do GitHub
+      - name: Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # 3. Faz login no Amazon ECR (Elastic Container Registry)
+      - name: Login no Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # 4. Compila a imagem Docker, adiciona uma tag e envia para o ECR
+      - name: Build, tag, e push da imagem para o ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: globoclima-auth # Nome do seu repositório no ECR
+          IMAGE_TAG: ${{ github.sha }}      # Usa o hash do commit como tag para garantir uma versão única
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./backend/auth-service
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+      # 5. Pega o task-definition.json, injeta a nova imagem e cria uma nova revisão
+      - name: Renderizar Task Definition do Amazon ECS
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: backend/auth-service/task-definition.json # Caminho para o template do serviço
+          container-name: globoclima-auth                    # Nome do contêiner dentro do task definition
+          image: ${{ steps.build-image.outputs.image }}      # A imagem que acabamos de enviar
+
+      # 6. Atualiza o serviço no ECS para usar a nova revisão da task definition
+      - name: Deploy da Task Definition no Amazon ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: AuthService # <-- ATENÇÃO: Confirme o nome EXATO do seu serviço no ECS
+          cluster: GloboClimaCluster    # <-- ATENÇÃO: Coloque o nome EXATO do seu cluster no ECS
+          wait-for-service-stability: true # Espera o deploy ser concluído com sucesso
